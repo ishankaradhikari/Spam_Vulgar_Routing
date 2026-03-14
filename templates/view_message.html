@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% set active_folder = msg.folder %}
+
+{% block title %}{{ msg.subject }} — MaileApp{% endblock %}
+{% block topbar_title %}Message{% endblock %}
+
+{% block topbar_search %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="javascript:history.back()" class="btn btn-ghost btn-sm">← Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="message-detail">
+
+  <!-- Header -->
+  <div class="message-header">
+    <div class="message-subject-row">
+      <h1>{{ msg.subject }}</h1>
+      {% if not msg.is_read %}
+      <span class="tag tag-unread">Unread</span>
+      {% endif %}
+      {% if msg.folder == 'spam' %}
+      <span class="tag tag-spam">⚠ Spam</span>
+      {% endif %}
+      {% if msg.is_vulgar %}
+      <span class="tag tag-vulgar">🚫 Vulgar</span>
+      {% endif %}
+      {% if msg.is_starred %}
+      <span class="tag tag-starred">⭐ Starred</span>
+      {% endif %}
+    </div>
+
+    <!-- ── ML Moderation Score Panel ──────────────────────────────────────── -->
+    {% if msg.spam_probability is defined and msg.spam_probability != none %}
+    <details class="ml-score-panel" {% if msg.folder == 'spam' or msg.is_vulgar %}open{% endif %}>
+      <summary class="ml-score-summary">🤖 ML Moderation Details</summary>
+      <div class="ml-score-grid">
+        <div class="ml-score-item">
+          <span class="ml-label">P(spam)</span>
+          <div class="ml-bar-wrap">
+            <div class="ml-bar ml-bar-spam" style="width: {{ (msg.spam_probability * 100)|int }}%"></div>
+          </div>
+          <span class="ml-val">{{ "%.1f"|format(msg.spam_probability * 100) }}%</span>
+        </div>
+        <div class="ml-score-item">
+          <span class="ml-label">P(ham)</span>
+          <div class="ml-bar-wrap">
+            <div class="ml-bar ml-bar-ham" style="width: {{ (msg.ham_probability * 100)|int }}%"></div>
+          </div>
+          <span class="ml-val">{{ "%.1f"|format(msg.ham_probability * 100) }}%</span>
+        </div>
+        <div class="ml-score-item">
+          <span class="ml-label">P(vulgar)</span>
+          <div class="ml-bar-wrap">
+            <div class="ml-bar ml-bar-vulgar" style="width: {{ (msg.vulgar_probability * 100)|int }}%"></div>
+          </div>
+          <span class="ml-val">{{ "%.1f"|format(msg.vulgar_probability * 100) }}%</span>
+        </div>
+        <div class="ml-score-item">
+          <span class="ml-label">Confidence</span>
+          <div class="ml-bar-wrap">
+            <div class="ml-bar ml-bar-confidence" style="width: {{ (msg.spam_confidence * 100)|int }}%"></div>
+          </div>
+          <span class="ml-val">{{ "%.1f"|format(msg.spam_confidence * 100) }}%</span>
+        </div>
+      </div>
+      {% if msg.moderation_reason %}
+      <p class="ml-reason"><strong>Decision:</strong> {{ msg.moderation_reason }}</p>
+      {% endif %}
+    </details>
+    {% endif %}
+    <!-- ── End ML Panel ────────────────────────────────────────────────────── -->
+
+    <div class="message-meta">
+      <div class="meta-avatar" style="background:{{ msg.sender_color or '#6c63ff' }}">
+        {{ (msg.sender_display or msg.sender_username or '?')[0].upper() }}
+      </div>
+      <div class="meta-people">
+        <div class="meta-from">
+          <strong>{{ msg.sender_display or msg.sender_username }}</strong>
+          <span style="color:var(--text-muted);font-size:.82rem"> &lt;{{ msg.sender_username }}&gt;</span>
+        </div>
+        <div class="meta-to">
+          To: {{ msg.recipient_display or msg.recipient_username }}
+        </div>
+      </div>
+      <div class="meta-time">
+        {{ msg.sent_at if msg.sent_at else '' }}
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="message-actions">
+      {% set is_sender = (msg.sender_id == session.user_id) %}
+
+      <!-- Reply -->
+      {% if not is_sender %}
+      <a href="{{ url_for('mail.compose',
+            to=msg.sender_username,
+            subject=('Re: ' + msg.subject) if not msg.subject.startswith('Re:') else msg.subject,
+            thread_id=msg.thread_id or msg.id) }}" class="btn btn-primary btn-sm">
+        ↩ Reply
+      </a>
+      {% endif %}
+
+      <!-- Forward -->
+      <a href="{{ url_for('mail.compose',
+          subject=('Fwd: ' + msg.subject) if not msg.subject.startswith('Fwd:') else msg.subject,
+          body='\n\n——— Forwarded message ———\n' + (msg.body or '')) }}" class="btn btn-secondary btn-sm">
+        ↪ Forward
+      </a>
+
+      <!-- Mark read/unread -->
+      <form method="POST" action="{{ url_for('mail.toggle_read', msg_id=msg.id) }}" style="display:inline">
+        <button class="btn btn-ghost btn-sm" type="submit">
+          {% if msg.is_read %}Mark unread{% else %}Mark read{% endif %}
+        </button>
+      </form>
+
+      <!-- Star -->
+      <form method="POST" action="{{ url_for('mail.toggle_star', msg_id=msg.id) }}" style="display:inline">
+        <button class="btn btn-ghost btn-sm" type="submit">
+          {{ '★ Unstar' if msg.is_starred else '☆ Star' }}
+        </button>
+      </form>
+
+      {% if msg.folder != 'spam' %}
+      <form method="POST" action="{{ url_for('mail.mark_spam', msg_id=msg.id) }}" style="display:inline">
+        <button class="btn btn-ghost btn-sm" type="submit"> Spam</button>
+      </form>
+      {% else %}
+      <form method="POST" action="{{ url_for('mail.not_spam', msg_id=msg.id) }}" style="display:inline">
+        <button class="btn btn-secondary btn-sm" type="submit"> Not spam</button>
+      </form>
+      {% endif %}
+
+      <!-- Delete -->
+      <form method="POST" action="{{ url_for('mail.delete_message', msg_id=msg.id) }}" style="display:inline" {% if
+        msg.folder=='trash' %}onsubmit="return confirm('Permanently delete this message?')" {% endif %}>
+        <button class="btn btn-danger btn-sm" type="submit">
+          🗑 {{ 'Delete forever' if msg.folder == 'trash' else 'Trash' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="message-body">{{ msg.body }}</div>
+
+  <!-- Attachment -->
+  {% if msg.attachment %}
+  <div class="attachment-bar">
+    📎 Attachment:
+    <a href="{{ url_for('static', filename='uploads/' + msg.attachment) }}"
+      download="{{ msg.attachment.split('_', 1)[1] if '_' in msg.attachment else msg.attachment }}">
+      {{ msg.attachment.split('_', 1)[1] if '_' in msg.attachment else msg.attachment }}
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Thread view -->
+{% if thread and thread|length > 1 %}
+<div class="thread-section">
+  <h3>Thread ({{ thread|length }} messages)</h3>
+
+  {% for t in thread %}
+  {% if t.id != msg.id %}
+  <div class="thread-msg">
+    <div class="thread-msg-header">
+      <div class="avatar-sm"
+        style="background:{{ t.sender_color or '#6c63ff' }};width:26px;height:26px;font-size:.72rem">
+        {{ (t.sender_display or t.sender_username or '?')[0].upper() }}
+      </div>
+      <span style="font-size:.88rem;font-weight:500">{{ t.sender_display or t.sender_username }}</span>
+      <span style="font-size:.78rem;color:var(--text-muted);margin-left:auto">
+        {{ t.sent_at[:10] if t.sent_at else '' }}
+      </span>
+      <span class="thread-chevron" style="font-size:.8rem;color:var(--text-muted);transition:transform .2s">▼</span>
+    </div>
+    <div class="thread-msg-body">{{ t.body }}</div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Quick reply box -->
+{% if msg.sender_id != session.user_id %}
+<div class="reply-section">
+  <h3>Quick Reply</h3>
+  <form method="POST" action="{{ url_for('mail.compose') }}" enctype="multipart/form-data">
+    <input type="hidden" name="to" value="{{ msg.sender_username }}" />
+    <input type="hidden" name="subject"
+      value="{{ ('Re: ' + msg.subject) if not msg.subject.startswith('Re:') else msg.subject }}" />
+    <input type="hidden" name="thread_id" value="{{ msg.thread_id or msg.id }}" />
+    <textarea class="form-control" name="body" rows="5" placeholder="Write your reply…" required></textarea>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button type="submit" class="btn btn-primary">Send Reply</button>
+      <span class="text-muted">to {{ msg.sender_display or msg.sender_username }}</span>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

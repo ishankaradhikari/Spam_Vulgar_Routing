@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% set active_folder = 'compose' %}
+
+{% block title %}Compose — MailApp{% endblock %}
+{% block topbar_title %}New Message{% endblock %}
+{% block topbar_search %}{% endblock %}
+
+{% block content %}
+<div class="compose-card">
+  <div class="compose-header">✏ Compose Message</div>
+
+  <!--
+    SOCKET INTEGRATION (Part 1):
+    The form still submits normally via HTTP POST (preserving all existing logic).
+    After a successful send, the page redirects to /sent — so no JS changes needed
+    to the form submission itself. The socket emit for live delivery to the
+    recipient is handled server-side via the /api/send JSON endpoint, which
+    is called by the JS below in addition to (not instead of) the normal POST.
+  -->
+  <form method="POST" action="{{ url_for('mail.compose') }}"
+        enctype="multipart/form-data" autocomplete="off" id="composeForm">
+
+    <div class="compose-form">
+      {% if prefill.thread_id %}
+        <input type="hidden" name="thread_id" value="{{ prefill.thread_id }}" />
+      {% endif %}
+
+      <div class="form-row">
+        <label for="toInput">To</label>
+        <div style="position:relative">
+          <input id="toInput" class="form-control" type="text" name="to"
+                 value="{{ prefill.to or '' }}" placeholder="Enter username…"
+                 required autocomplete="off" />
+          <div class="autocomplete-list" id="autocompleteList" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="msgSubject">Subject</label>
+        <input id="msgSubject" class="form-control" type="text" name="subject"
+               value="{{ prefill.subject or '' }}" placeholder="What's this about?" />
+      </div>
+
+      <div class="form-row">
+        <label for="messageBody">
+          Message
+          <span id="charCount" class="text-muted"
+                style="float:right;font-weight:400;text-transform:none;letter-spacing:0">0 chars</span>
+        </label>
+        <textarea id="messageBody" class="form-control" name="body"
+                  placeholder="Write your message here…" required>{{ prefill.body or '' }}</textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="attachment">
+          Attachment
+          <span class="text-muted" style="text-transform:none;font-weight:400;letter-spacing:0">
+            (optional · pdf, jpg, png, txt, doc · max 5 MB)
+          </span>
+        </label>
+        <input id="attachment" class="form-control" type="file" name="attachment"
+               accept=".pdf,.png,.jpg,.jpeg,.gif,.txt,.doc,.docx" />
+      </div>
+
+      <div style="background:var(--teal-light);border:1px solid #a7f3d0;
+                  border-radius:6px;padding:10px 14px;font-size:.82rem;color:#065f46">
+        🛡 Messages are automatically scanned for spam and inappropriate content.
+      </div>
+    </div>
+
+    <div class="compose-footer">
+      <button type="submit" class="btn btn-primary">Send Message</button>
+      <a href="javascript:history.back()" class="btn btn-ghost">Discard</a>
+      {% if users %}
+        <div class="ml-auto text-muted" style="font-size:.78rem">
+          {{ users|length }} user(s) registered
+        </div>
+      {% endif %}
+    </div>
+
+  </form>
+</div>
+
+<!--
+  SOCKET INTEGRATION (Part 1.1 & 1.3):
+  After the form POST succeeds and the page redirects to /sent, the recipient
+  receives the message via socket push. This script intercepts the form submit,
+  calls /api/send (JSON), and emits 'new_message_sent' to the server so the
+  recipient's inbox updates instantly — then lets the normal POST proceed for
+  the redirect/flash behaviour.
+-->
+<script>
+(function() {
+  const form = document.getElementById('composeForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e) {
+    // Do NOT prevent default — let the normal form POST happen for redirect/flash.
+    // We fire a parallel async request to /api/send so the socket can notify the recipient.
+    const to      = document.getElementById('toInput')?.value?.trim();
+    const subject = document.getElementById('msgSubject')?.value?.trim() || '(no subject)';
+    const body    = document.getElementById('messageBody')?.value?.trim();
+    const threadInput = form.querySelector('[name="thread_id"]');
+    const thread_id   = threadInput ? threadInput.value : null;
+
+    // Skip if no body (will fail validation anyway)
+    if (!to || !body) return;
+
+    // Parallel async socket notification — fire and forget
+    fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, body, thread_id })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok && typeof io !== 'undefined' && window._socket) {
+        // Emit to server so it pushes 'new_message' to the recipient's room
+        window._socket.emit('new_message_sent', {
+          recipient_id:   data.recipient_id,
+          message_id:     data.message_id,
+          subject:        data.subject,
+          preview:        data.preview,
+          sender_display: data.sender_display,
+          sender_color:   data.sender_color,
+          sent_at:        new Date().toISOString().slice(0, 10),
+        });
+      }
+    })
+    .catch(() => { /* socket delivery optional — core send still happens via POST */ });
+  });
+})();
+</script>
+{% endblock %}
