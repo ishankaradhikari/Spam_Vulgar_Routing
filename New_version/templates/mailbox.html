@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% set folder_labels = {'inbox': 'Inbox', 'sent': 'Sent', 'spam': 'Spam', 'trash': 'Trash'} %}
+{% set active_folder = folder %}
+
+{% block title %}{{ folder_labels[folder] }} — MailApp{% endblock %}
+{% block topbar_title %}{{ folder_labels[folder] }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if folder == 'trash' and messages %}
+    {# empty trash button #}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('mail.bulk_action') }}" id="bulkForm">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <input type="checkbox" id="selectAll" title="Select all" style="width:15px;height:15px;accent-color:var(--accent)">
+
+      <!-- Bulk action bar (hidden until checkbox selected) -->
+      <div id="bulkBar" style="display:none;align-items:center;gap:6px">
+        <select name="action" class="form-control" style="padding:5px 10px;font-size:.82rem;width:auto">
+          <option value="read">Mark read</option>
+          <option value="unread">Mark unread</option>
+          {% if folder != 'spam' %}<option value="spam">Mark spam</option>{% endif %}
+          <option value="star">Star</option>
+          <option value="delete">Move to trash</option>
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <span class="count-info">
+        {% if q %}
+          {{ total }} result(s) for "<em>{{ q }}</em>"
+          &nbsp;<a href="{{ url_for('mail.' + folder) }}" class="text-muted" style="font-size:.8rem">✕ clear</a>
+        {% else %}
+          {{ total }} message(s)
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Message list -->
+  {% if messages %}
+    <div class="message-list">
+      {% for msg in messages %}
+        {% set is_sender = (msg.sender_id == session.user_id) %}
+        {% set other_person = msg.recipient_display or msg.recipient_username if is_sender else msg.sender_display or msg.sender_username %}
+        {% set other_color  = '#6c63ff' if is_sender else (msg.sender_color or '#6c63ff') %}
+
+        <div class="message-row {% if not msg.is_read and not is_sender %}unread{% endif %} {% if msg.is_starred %}starred{% endif %}"
+             style="position:relative"
+             onclick="location.href='{{ url_for('mail.view_message', msg_id=msg.id) }}'">
+
+          {% if not msg.is_read and not is_sender %}
+            <span class="unread-dot"></span>
+          {% endif %}
+
+          <!-- Checkbox (stop propagation so clicking it doesn't navigate) -->
+          <div class="msg-checkbox" onclick="event.stopPropagation()">
+            <input type="checkbox" name="msg_ids" value="{{ msg.id }}"
+                   class="msg-check" id="chk{{ msg.id }}" />
+          </div>
+
+          <!-- From / To -->
+          <div class="msg-from">
+            <div class="d-flex align-center gap-8">
+              <div class="avatar-sm" style="background:{{ other_color }};width:24px;height:24px;font-size:.7rem">
+                {{ other_person[0].upper() if other_person else '?' }}
+              </div>
+              {{ other_person or '(unknown)' }}
+            </div>
+          </div>
+
+          <!-- Subject + snippet -->
+          <div class="msg-preview">
+            <span class="msg-subject">
+              {% if msg.is_starred %}⭐ {% endif %}
+              {{ msg.subject }}
+            </span>
+            <span class="msg-snippet">{{ (msg.body or '')[:80] }}</span>
+          </div>
+
+          <!-- Icons -->
+          <div class="msg-icons" onclick="event.stopPropagation()">
+
+            <form method="POST" action="{{ url_for('mail.toggle_star', msg_id=msg.id) }}" style="display:inline">
+              <button class="star-btn" type="submit" title="{{ 'Unstar' if msg.is_starred else 'Star' }}">
+                {{ '⭐' if msg.is_starred else '☆' }}
+              </button>
+            </form>
+
+            {% if folder == 'trash' %}
+              <form method="POST" action="{{ url_for('mail.restore_message', msg_id=msg.id) }}" style="display:inline">
+                <button class="icon-btn" type="submit" title="Restore">♻️</button>
+              </form>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('mail.delete_message', msg_id=msg.id) }}" style="display:inline">
+              <button class="icon-btn" type="submit" title="{{ 'Delete permanently' if folder == 'trash' else 'Move to trash' }}"
+                      {% if folder == 'trash' %}onclick="return confirm('Permanently delete this message?')"{% endif %}>
+                🗑
+              </button>
+            </form>
+          </div>
+
+          <!-- Time -->
+          <div class="msg-time">
+            {{ msg.sent_at[:10] if msg.sent_at else '' }}
+          </div>
+
+        </div><!-- /message-row -->
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+      <div class="pagination">
+        <a href="?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}"
+           class="page-btn {% if page <= 1 %}disabled{% endif %}">← Prev</a>
+
+        {% for p in range(1, total_pages + 1) %}
+          {% if p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+            <a href="?page={{ p }}{% if q %}&q={{ q }}{% endif %}"
+               class="page-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+          {% elif p == 4 and page > 5 %}
+            <span class="page-btn disabled">…</span>
+          {% endif %}
+        {% endfor %}
+
+        <a href="?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}"
+           class="page-btn {% if page >= total_pages %}disabled{% endif %}">Next →</a>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        {% if folder == 'inbox' %}📭
+        {% elif folder == 'sent' %}📤
+        {% elif folder == 'spam' %}🛡️
+        {% else %}🗑️{% endif %}
+      </div>
+      <h3>
+        {% if q %}No results found
+        {% elif folder == 'inbox' %}Your inbox is empty
+        {% elif folder == 'sent' %}Nothing sent yet
+        {% elif folder == 'spam' %}No spam here
+        {% else %}Trash is empty{% endif %}
+      </h3>
+      <p>
+        {% if not q and folder == 'inbox' %}
+          <a href="{{ url_for('mail.compose') }}" style="color:var(--accent-bright)">Compose a message</a> to get started.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</form>
+{% endblock %}

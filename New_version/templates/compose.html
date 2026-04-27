@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% set active_folder = 'compose' %}
+
+{% block title %}Compose — MailApp{% endblock %}
+{% block topbar_title %}New Message{% endblock %}
+{% block topbar_search %}{% endblock %}
+
+{% block content %}
+<div class="compose-card">
+  <div class="compose-header"> Compose Message</div>
+
+  <form method="POST" action="{{ url_for('mail.compose') }}"
+        autocomplete="off">
+
+    <div class="compose-form">
+      {% if prefill.thread_id %}
+        <input type="hidden" name="thread_id" value="{{ prefill.thread_id }}" />
+      {% endif %}
+
+      <div class="form-row">
+        <label for="toInput">To</label>
+        <div style="position:relative">
+          <input id="toInput" class="form-control" type="text" name="to"
+                 value="{{ prefill.to or '' }}" placeholder="Enter username…"
+                 required autocomplete="off" />
+          <div class="autocomplete-list" id="autocompleteList" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="msgSubject">Subject</label>
+        <input id="msgSubject" class="form-control" type="text" name="subject"
+               value="{{ prefill.subject or '' }}" placeholder="What's this about?" />
+      </div>
+
+      <div class="form-row">
+        <label for="messageBody">
+          Message
+          <span id="charCount" class="text-muted"
+                style="float:right;font-weight:400;text-transform:none;letter-spacing:0">0 chars</span>
+        </label>
+        <textarea id="messageBody" class="form-control" name="body"
+                  placeholder="Write your message here…" required>{{ prefill.body or '' }}</textarea>
+      </div>
+
+      <div<div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.15);
+                  border-radius:6px;padding:10px 14px;font-size:.82rem;color:var(--text-muted)">
+        🛡 Messages are automatically scanned for spam. Suspicious content may be filtered
+        to the recipient's Spam folder.
+      </div>
+    </div>
+
+    <div class="compose-footer">
+      <button type="submit" class="btn btn-primary"> Send Message</button>
+      <a href="javascript:history.back()" class="btn btn-ghost">Discard</a>
+      {% if users %}
+        <div class="ml-auto text-muted">{{ users|length }} user(s) registered</div>
+      {% endif %}
+    </div>
+
+  </form>
+</div>
+{% endblock %}

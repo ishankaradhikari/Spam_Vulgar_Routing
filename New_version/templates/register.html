@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Register — MailApp{% endblock %}
+
+{% block public_content %}
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="logo-icon">✉</div>
+      <span>MailApp</span>
+    </div>
+
+    <h1 class="auth-title">Create an account</h1>
+    <p class="auth-subtitle">Start sending messages today</p>
+
+    <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
+      <div class="form-row">
+        <label for="username">Username</label>
+        <input id="username" class="form-control" type="text" name="username"
+               placeholder="cooluser" required minlength="3"
+               value="{{ username or '' }}" autocomplete="username" autofocus />
+      </div>
+
+      <div class="form-row">
+        <label for="email">Email</label>
+        <input id="email" class="form-control" type="email" name="email"
+               placeholder="you@example.com" required
+               value="{{ email or '' }}" autocomplete="email" />
+      </div>
+
+      <div class="form-row">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input id="password" class="form-control" type="password" name="password"
+                 placeholder="At least 6 characters" required minlength="6"
+                 autocomplete="new-password" />
+          <button type="button" class="password-toggle">👁</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="confirm_password">Confirm Password</label>
+        <div class="input-wrap">
+          <input id="confirm_password" class="form-control" type="password" name="confirm_password"
+                 placeholder="••••••••" required autocomplete="new-password" />
+          <button type="button" class="password-toggle">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">
+        Create Account →
+      </button>
+    </form>
+
+    <p class="auth-divider">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

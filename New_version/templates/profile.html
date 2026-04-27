@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set active_folder = 'profile' %}
+
+{% block title %}Profile — MailApp{% endblock %}
+{% block topbar_title %}Profile{% endblock %}
+{% block topbar_search %}{% endblock %}
+
+{% block content %}
+<div class="profile-card">
+
+  <!-- Profile header -->
+  <div class="profile-header">
+    <div class="profile-avatar" id="avatarPreview"
+         style="background:{{ user.avatar_color or '#6c63ff' }}">
+      {{ (user.display_name or user.username or '?')[0].upper() }}
+    </div>
+    <div class="profile-info">
+      <h2>{{ user.display_name or user.username }}</h2>
+      <p>@{{ user.username }} · {{ user.email }}</p>
+      <p style="margin-top:4px;font-size:.78rem;color:var(--text-muted)">
+        Member since {{ user.created_at[:10] if user.created_at else 'N/A' }}
+        {% if user.last_login %} · Last login {{ user.last_login[:10] }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">{{ stats.inbox_count or 0 }}</div>
+      <div class="stat-label">Received</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ stats.sent_count or 0 }}</div>
+      <div class="stat-label">Sent</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ stats.spam_count or 0 }}</div>
+      <div class="stat-label">Spam</div>
+    </div>
+  </div>
+
+  <!-- Edit form -->
+  <form method="POST" action="{{ url_for('mail.profile') }}">
+    <div class="form-row" style="margin-bottom:16px">
+      <label for="displayName">Display Name</label>
+      <input id="displayName" class="form-control" type="text" name="display_name"
+             value="{{ user.display_name or '' }}" placeholder="{{ user.username }}" />
+    </div>
+
+    <div class="form-row" style="margin-bottom:20px">
+      <label>Avatar Colour</label>
+      <input type="hidden" name="avatar_color" id="avatarColorInput"
+             value="{{ user.avatar_color or '#6c63ff' }}" />
+      <div class="color-swatches">
+        {% for color in ['#e63946','#2a9d8f','#e9c46a','#f4a261','#264653','#6c63ff','#48cae4','#b5838d','#06d6a0','#ff6b6b','#a8dadc','#457b9d'] %}
+          <div class="color-swatch {% if user.avatar_color == color %}selected{% endif %}"
+               style="background:{{ color }}" data-color="{{ color }}"
+               title="{{ color }}"></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="d-flex gap-8">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="{{ url_for('mail.inbox') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

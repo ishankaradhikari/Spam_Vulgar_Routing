@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Login — MailApp{% endblock %}
+
+{% block public_content %}
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="logo-icon">✉</div>
+      <span>MailApp</span>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account</p>
+
+    <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-row">
+        <label for="identifier">Username or Email</label>
+        <input id="identifier" class="form-control" type="text" name="identifier"
+               placeholder="you@example.com" required autofocus autocomplete="username" />
+      </div>
+
+      <div class="form-row">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input id="password" class="form-control" type="password" name="password"
+                 placeholder="••••••••" required autocomplete="current-password" />
+          <button type="button" class="password-toggle">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">
+        Sign In →
+      </button>
+    </form>
+
+    <p class="auth-divider">
+      New here? <a href="{{ url_for('auth.register') }}">Create an account</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
