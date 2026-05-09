@@ -12,7 +12,15 @@
 
 {% if session.get('user_id') %}
 <!-- ════════ App Shell ════════ -->
-<div class="app-shell">
+
+<!--
+  SOCKET INTEGRATION (Part 1):
+  data-current-user-id is read by main.js to identify the logged-in user
+  for online-status checks and typing emit.
+-->
+<div class="app-shell"
+     data-current-username="{{ session.get('username') }}"
+     data-current-user-id="{{ session.get('user_id') }}">
 
   <!-- Sidebar -->
   <nav class="sidebar" id="sidebar">
@@ -23,7 +31,7 @@
 
     <div class="sidebar-compose">
       <a href="{{ url_for('mail.compose') }}" class="btn-compose">
-        &nbsp; Compose
+        ✏ &nbsp;Compose
       </a>
     </div>
 
@@ -32,7 +40,7 @@
 
       <a href="{{ url_for('mail.inbox') }}"
          class="nav-item {% if active_folder == 'inbox' %}active{% endif %}">
-        <span class="icon"></span>
+        <span class="icon">📥</span>
         Inbox
         {% if folder_counts and folder_counts.inbox > 0 %}
           <span class="badge" id="inboxBadge">{{ folder_counts.inbox }}</span>
@@ -43,12 +51,12 @@
 
       <a href="{{ url_for('mail.sent') }}"
          class="nav-item {% if active_folder == 'sent' %}active{% endif %}">
-        <span class="icon"></span> Sent
+        <span class="icon">📤</span> Sent
       </a>
 
       <a href="{{ url_for('mail.spam') }}"
          class="nav-item {% if active_folder == 'spam' %}active{% endif %}">
-        <span class="icon"></span>
+        <span class="icon">🛡</span>
         Spam
         {% if folder_counts and folder_counts.spam > 0 %}
           <span class="badge danger" id="spamBadge">{{ folder_counts.spam }}</span>
@@ -59,25 +67,27 @@
 
       <a href="{{ url_for('mail.trash') }}"
          class="nav-item {% if active_folder == 'trash' %}active{% endif %}">
-        <span class="icon"></span> Trash
+        <span class="icon">🗑</span> Trash
       </a>
+
+      <div class="nav-label" style="margin-top:8px">Tools</div>
 
       <a href="{{ url_for('stats.model_stats') }}"
          class="nav-item {% if active_folder == 'stats' %}active{% endif %}">
-        <span class="icon"></span> ML Stats
+        <span class="icon">📊</span> ML Stats
       </a>
 
       <div class="nav-label" style="margin-top:8px">Account</div>
 
       <a href="{{ url_for('mail.profile') }}"
          class="nav-item {% if active_folder == 'profile' %}active{% endif %}">
-        <span class="icon"></span> Profile
+        <span class="icon">👤</span> Profile
       </a>
     </div>
 
     <div class="sidebar-footer">
       <div class="avatar-sm"
-           style="background:{{ session.get('avatar_color','#6c63ff') }}">
+           style="background:{{ session.get('avatar_color','#528fff') }}">
         {{ (session.get('display_name') or session.get('username','?'))[0].upper() }}
       </div>
       <div class="user-info">
@@ -86,7 +96,7 @@
       </div>
       <a href="{{ url_for('auth.logout') }}" class="btn-logout" title="Logout">⏻</a>
     </div>
-  </nav><!-- /sidebar -->
+  </nav>
 
   <!-- Sidebar overlay for mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -106,7 +116,16 @@
       </form>
       {% endblock %}
 
-      <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+      <div class="topbar-actions">
+        {% block topbar_actions %}{% endblock %}
+
+        <!-- SOCKET: Notification bell (Part 1.5) -->
+        <button id="notifBell" title="Notifications" style="position:relative">
+          🔔
+          <span id="notifCount"></span>
+        </button>
+
+      </div>
     </header>
 
     <!-- Flash messages -->
@@ -123,10 +142,24 @@
       {% endif %}
     {% endwith %}
 
+    <!-- SOCKET: Typing indicator bar (Part 1.3) -->
+    <div id="typingIndicator">
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <span class="typing-name">Someone</span>&nbsp;is typing…
+    </div>
+
     <div class="page-body">
       {% block content %}{% endblock %}
     </div>
-  </div><!-- /main-content -->
+  </div>
+
+  <!-- SOCKET: Notification dropdown (Part 1.5) -->
+  <div id="notifDropdown">
+    <div class="notif-header">Notifications</div>
+    <div class="notif-empty">No new messages</div>
+  </div>
 
 </div><!-- /app-shell -->
 
@@ -134,7 +167,7 @@
 <!-- ════════ Public page ════════ -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="flash-container" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;width:380px">
+    <div style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;width:360px;display:flex;flex-direction:column;gap:8px">
       {% for category, msg in messages %}
         <div class="flash {{ category }}">
           <span>{{ msg }}</span>
@@ -145,6 +178,11 @@
   {% endif %}
 {% endwith %}
 {% block public_content %}{% endblock %}
+{% endif %}
+
+<!-- SOCKET: Flask-SocketIO client library (auto-served by flask-socketio) -->
+{% if session.get('user_id') %}
+<script src="/socket.io/socket.io.js"></script>
 {% endif %}
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>

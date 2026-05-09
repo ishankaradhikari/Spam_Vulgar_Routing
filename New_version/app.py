@@ -9,6 +9,7 @@ from config import Config
 from database import init_db
 from routes.auth import auth_bp
 from routes.mail import mail_bp
+from routes.stats import stats_bp
 from naive_bayes import NaiveBayesSpamClassifier
 
 # NEW: import the vulgar classifier (does NOT modify NaiveBayesSpamClassifier)
@@ -25,18 +26,21 @@ def create_app(config_class=Config):
     # ── Register blueprints ───────────────────────────────────────────────────
     app.register_blueprint(auth_bp)
     app.register_blueprint(mail_bp)
+    app.register_blueprint(stats_bp)
 
     # ── Load & Train Naive Bayes Spam Model (UNCHANGED) ───────────────────────
     # This is the existing model — we do NOT modify it.
     app.nb_model = NaiveBayesSpamClassifier()
-    app.nb_model.train("dataset/SpamCollection.txt")
+    spam_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "SpamCollection.txt")
+    app.nb_model.train(spam_dataset_path)
 
     # ── Load & Train Vulgar Language Classifier (NEW) ─────────────────────────
     # A second, independent classifier that detects vulgar/abusive language.
     # It uses character n-grams + word features + special-char ratios so it
     # can detect obfuscated words like bi*ch, @ss, f!ck, etc.
-    app.vulgar_model = VulgarClassifier(alpha=2.0, vulgar_threshold=0.80)
-    app.vulgar_model.train("dataset/vulgar_dataset.txt")
+    app.vulgar_model = VulgarClassifier(alpha=2.0, vulgar_threshold=0.90)
+    vulgar_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "vulgar_dataset.txt")
+    app.vulgar_model.train(vulgar_dataset_path)
 
 
     

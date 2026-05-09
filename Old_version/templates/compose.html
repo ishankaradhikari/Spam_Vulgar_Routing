@@ -7,10 +7,16 @@
 
 {% block content %}
 <div class="compose-card">
-  <div class="compose-header"> Compose Message</div>
+  <div class="compose-header">✏ Compose Message</div>
 
+  <!--
+    SOCKET INTEGRATION (Part 1):
+    The form submits normally via HTTP POST, preserving existing send logic.
+    Real-time delivery is now emitted directly from the server after the
+    message is saved, avoiding duplicate sends from a parallel client request.
+  -->
   <form method="POST" action="{{ url_for('mail.compose') }}"
-        autocomplete="off">
+        enctype="multipart/form-data" autocomplete="off" id="composeForm">
 
     <div class="compose-form">
       {% if prefill.thread_id %}
@@ -43,21 +49,34 @@
                   placeholder="Write your message here…" required>{{ prefill.body or '' }}</textarea>
       </div>
 
-      <div<div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.15);
-                  border-radius:6px;padding:10px 14px;font-size:.82rem;color:var(--text-muted)">
-        🛡 Messages are automatically scanned for spam. Suspicious content may be filtered
-        to the recipient's Spam folder.
+      <div class="form-row">
+        <label for="attachment">
+          Attachment
+          <span class="text-muted" style="text-transform:none;font-weight:400;letter-spacing:0">
+            (optional · pdf, jpg, png, txt, doc · max 5 MB)
+          </span>
+        </label>
+        <input id="attachment" class="form-control" type="file" name="attachment"
+               accept=".pdf,.png,.jpg,.jpeg,.gif,.txt,.doc,.docx" />
+      </div>
+
+      <div style="background:var(--teal-light);border:1px solid #a7f3d0;
+                  border-radius:6px;padding:10px 14px;font-size:.82rem;color:#065f46">
+        🛡 Messages are automatically scanned for spam and inappropriate content.
       </div>
     </div>
 
     <div class="compose-footer">
-      <button type="submit" class="btn btn-primary"> Send Message</button>
+      <button type="submit" class="btn btn-primary">Send Message</button>
       <a href="javascript:history.back()" class="btn btn-ghost">Discard</a>
       {% if users %}
-        <div class="ml-auto text-muted">{{ users|length }} user(s) registered</div>
+        <div class="ml-auto text-muted" style="font-size:.78rem">
+          {{ users|length }} user(s) registered
+        </div>
       {% endif %}
     </div>
 
   </form>
 </div>
+
 {% endblock %}

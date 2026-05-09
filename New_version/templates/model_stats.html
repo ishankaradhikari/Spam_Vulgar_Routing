@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% set active_folder = 'stats' %}
+
+{% block title %}ML Statistics — PulseMailer{% endblock %}
+{% block topbar_title %}ML Model Statistics{% endblock %}
+{% block topbar_search %}{% endblock %}
+
+{% block content %}
+
+<!-- Spam Classifier Stats -->
+{% if spam_stats.error %}
+  <div class="flash error"><span>{{ spam_stats.error }}</span></div>
+{% else %}
+
+<div class="model-section">
+  <h1 class="model-heading">Spam Classifier Statistics</h1>
+  
+  <div class="stats-grid">
+    <div class="stat-card accent">
+      <div class="stat-label">Accuracy</div>
+      <div class="stat-value">{{ spam_stats.accuracy }}%</div>
+      <div class="stat-sub">Overall correct predictions</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Precision</div>
+      <div class="stat-value">{{ spam_stats.precision }}%</div>
+      <div class="stat-sub">Of flagged spam, truly spam</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-label">Recall</div>
+      <div class="stat-value">{{ spam_stats.recall }}%</div>
+      <div class="stat-sub">Of all spam, how much caught</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">F1 Score</div>
+      <div class="stat-value">{{ spam_stats.f1 }}%</div>
+      <div class="stat-sub">Balance of precision and recall</div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Confusion Matrix</h2>
+    <p class="section-desc">Evaluated on <strong>{{ spam_stats.total }}</strong> examples from the training dataset using threshold <strong>{{ spam_stats.threshold }}</strong>.</p>
+
+    <div class="confusion-wrap">
+      <div class="confusion-matrix">
+        <div class="cm-corner"></div>
+        <div class="cm-header">Predicted HAM</div>
+        <div class="cm-header">Predicted SPAM</div>
+
+        <div class="cm-row-label">Actual HAM</div>
+        <div class="cm-cell cm-tn">
+          <span class="cm-count">{{ spam_stats.TN }}</span>
+          <span class="cm-name">True Negative</span>
+        </div>
+        <div class="cm-cell cm-fp">
+          <span class="cm-count">{{ spam_stats.FP }}</span>
+          <span class="cm-name">False Positive</span>
+        </div>
+
+        <div class="cm-row-label">Actual SPAM</div>
+        <div class="cm-cell cm-fn">
+          <span class="cm-count">{{ spam_stats.FN }}</span>
+          <span class="cm-name">False Negative</span>
+        </div>
+        <div class="cm-cell cm-tp">
+          <span class="cm-count">{{ spam_stats.TP }}</span>
+          <span class="cm-name">True Positive</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Model Information</h2>
+    <div class="info-grid">
+      <div class="info-item"><span class="info-label">Training spam messages</span><span class="info-val">{{ spam_stats.spam_count }}</span></div>
+      <div class="info-item"><span class="info-label">Training ham messages</span><span class="info-val">{{ spam_stats.ham_count }}</span></div>
+      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ spam_stats.vocab_size }}</span></div>
+      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ spam_stats.threshold }}</span></div>
+      <div class="info-item"><span class="info-label">Algorithm</span><span class="info-val">Naive Bayes (Laplace smoothing)</span></div>
+      <div class="info-item"><span class="info-label">Evaluation set</span><span class="info-val">Training data ({{ spam_stats.total }} examples)</span></div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Sample Predictions (first 200)</h2>
+    <div style="overflow-x:auto">
+      <table class="pred-table">
+        <thead>
+          <tr>
+            <th>True Label</th>
+            <th>Predicted</th>
+            <th>P(spam) %</th>
+            <th>Correct</th>
+            <th>Message Snippet</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ex in spam_stats.examples %}
+          <tr class="{{ 'pred-wrong' if not ex.correct else '' }}">
+            <td><span class="label-tag {{ ex.true }}">{{ ex.true }}</span></td>
+            <td><span class="label-tag {{ ex.pred }}">{{ ex.pred }}</span></td>
+            <td>
+              <div class="prob-bar-wrap">
+                <div class="prob-bar" style="width:{{ ex.prob }}%"></div>
+                <span class="prob-text">{{ ex.prob }}%</span>
+              </div>
+            </td>
+            <td class="correct-col">{{ '✓' if ex.correct else '✗' }}</td>
+            <td class="snippet">{{ ex.text }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<!-- Vulgar Content Classifier Stats -->
+{% if vulgar_stats.error %}
+  <div class="flash error"><span>{{ vulgar_stats.error }}</span></div>
+{% else %}
+
+<div class="model-section">
+  <h1 class="model-heading">Vulgar Content Classifier Statistics</h1>
+  
+  <div class="stats-grid">
+    <div class="stat-card accent">
+      <div class="stat-label">Accuracy</div>
+      <div class="stat-value">{{ vulgar_stats.accuracy }}%</div>
+      <div class="stat-sub">Overall correct predictions</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Precision</div>
+      <div class="stat-value">{{ vulgar_stats.precision }}%</div>
+      <div class="stat-sub">Of flagged vulgar, truly vulgar</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-label">Recall</div>
+      <div class="stat-value">{{ vulgar_stats.recall }}%</div>
+      <div class="stat-sub">Of all vulgar, how much caught</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">F1 Score</div>
+      <div class="stat-value">{{ vulgar_stats.f1 }}%</div>
+      <div class="stat-sub">Balance of precision and recall</div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Confusion Matrix</h2>
+    <p class="section-desc">Evaluated on <strong>{{ vulgar_stats.total }}</strong> examples from the training dataset using threshold <strong>{{ vulgar_stats.threshold }}</strong>.</p>
+
+    <div class="confusion-wrap">
+      <div class="confusion-matrix">
+        <div class="cm-corner"></div>
+        <div class="cm-header">Predicted CLEAN</div>
+        <div class="cm-header">Predicted VULGAR</div>
+
+        <div class="cm-row-label">Actual CLEAN</div>
+        <div class="cm-cell cm-tn">
+          <span class="cm-count">{{ vulgar_stats.TN }}</span>
+          <span class="cm-name">True Negative</span>
+        </div>
+        <div class="cm-cell cm-fp">
+          <span class="cm-count">{{ vulgar_stats.FP }}</span>
+          <span class="cm-name">False Positive</span>
+        </div>
+
+        <div class="cm-row-label">Actual VULGAR</div>
+        <div class="cm-cell cm-fn">
+          <span class="cm-count">{{ vulgar_stats.FN }}</span>
+          <span class="cm-name">False Negative</span>
+        </div>
+        <div class="cm-cell cm-tp">
+          <span class="cm-count">{{ vulgar_stats.TP }}</span>
+          <span class="cm-name">True Positive</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Model Information</h2>
+    <div class="info-grid">
+      <div class="info-item"><span class="info-label">Training vulgar messages</span><span class="info-val">{{ vulgar_stats.vulgar_count }}</span></div>
+      <div class="info-item"><span class="info-label">Training clean messages</span><span class="info-val">{{ vulgar_stats.clean_count }}</span></div>
+      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ vulgar_stats.vocab_size }}</span></div>
+      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ vulgar_stats.threshold }}</span></div>
+      <div class="info-item"><span class="info-label">Algorithm</span><span class="info-val">Naive Bayes with n-grams (Laplace smoothing)</span></div>
+      <div class="info-item"><span class="info-label">Evaluation set</span><span class="info-val">Training data ({{ vulgar_stats.total }} examples)</span></div>
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <h2 class="section-title">Sample Predictions (first 200)</h2>
+    <div style="overflow-x:auto">
+      <table class="pred-table">
+        <thead>
+          <tr>
+            <th>True Label</th>
+            <th>Predicted</th>
+            <th>P(vulgar) %</th>
+            <th>Correct</th>
+            <th>Message Snippet</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ex in vulgar_stats.examples %}
+          <tr class="{{ 'pred-wrong' if not ex.correct else '' }}">
+            <td><span class="label-tag {{ ex.true }}">{{ ex.true }}</span></td>
+            <td><span class="label-tag {{ ex.pred }}">{{ ex.pred }}</span></td>
+            <td>
+              <div class="prob-bar-wrap">
+                <div class="prob-bar" style="width:{{ ex.prob }}%"></div>
+                <span class="prob-text">{{ ex.prob }}%</span>
+              </div>
+            </td>
+            <td class="correct-col">{{ '✓' if ex.correct else '✗' }}</td>
+            <td class="snippet">{{ ex.text }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<style>
+.model-section { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-color); }
+.model-section:last-child { border-bottom: none; }
+.model-heading { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+  transition: box-shadow .2s;
+}
+.stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+.stat-card.accent { border-top: 3px solid #5b8af0; }
+.stat-card.blue   { border-top: 3px solid #3db8e8; }
+.stat-card.teal   { border-top: 3px solid #2ecba1; }
+.stat-card.green  { border-top: 3px solid #4cca71; }
+.stat-label { font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+.stat-value { font-size: 2.2rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.stat-sub   { font-size: .75rem; color: var(--text-muted); margin-top: 4px; }
+
+.stats-section { margin-bottom: 32px; }
+.section-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.section-desc  { font-size: .85rem; color: var(--text-muted); margin-bottom: 16px; }
+
+.confusion-wrap { overflow-x: auto; }
+.confusion-matrix {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr;
+  gap: 8px;
+  max-width: 560px;
+}
+.cm-corner {}
+.cm-header { text-align: center; font-size: .78rem; font-weight: 600; letter-spacing: .04em; color: var(--text-muted); padding: 6px 0; text-transform: uppercase; }
+.cm-row-label { display: flex; align-items: center; font-size: .78rem; font-weight: 600; letter-spacing: .04em; color: var(--text-muted); text-transform: uppercase; }
+.cm-cell { border-radius: 10px; padding: 20px 16px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.cm-count { font-size: 2rem; font-weight: 700; }
+.cm-name  { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.cm-tp { background: #e8f9ee; color: #1a7a3c; }
+.cm-tn { background: #e8f4ff; color: #1a5ea8; }
+.cm-fp { background: #fff4e0; color: #8a5a00; }
+.cm-fn { background: #fee8e8; color: #8a1a1a; }
+
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.info-item { display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; font-size: .85rem; }
+.info-label { color: var(--text-muted); }
+.info-val   { font-weight: 600; color: var(--text-primary); }
+
+.formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.formula-card { background: var(--surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; }
+.formula-name { font-weight: 600; font-size: .9rem; color: var(--text-primary); margin-bottom: 6px; }
+.formula-eq   { font-family: monospace; font-size: .82rem; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: #5b8af0; margin-bottom: 8px; }
+.formula-desc { font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+
+.pred-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.pred-table th { text-align: left; padding: 8px 12px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+.pred-table td { padding: 7px 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+.pred-table tr:hover td { background: var(--bg-base); }
+.pred-wrong td { background: rgba(255,80,80,.04); }
+.label-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.label-tag.spam { background: #fee8e8; color: #a02020; }
+.label-tag.ham  { background: #e8f4ff; color: #1a5ea8; }
+.label-tag.vulgar { background: #fee8e8; color: #a02020; }
+.label-tag.clean  { background: #e8f4ff; color: #1a5ea8; }
+.correct-col { font-size: 1rem; text-align: center; }
+tr:not(.pred-wrong) .correct-col { color: #2ea84e; }
+.pred-wrong .correct-col { color: #e04040; }
+.snippet { color: var(--text-muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prob-bar-wrap { position: relative; background: var(--bg-base); border-radius: 4px; height: 18px; width: 120px; overflow: hidden; }
+.prob-bar { position: absolute; left: 0; top: 0; bottom: 0; background: #5b8af0; opacity: .35; border-radius: 4px; }
+.prob-text { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: .75rem; font-weight: 600; color: var(--text-primary); }
+</style>
+{% endblock %}

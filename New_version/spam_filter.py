@@ -50,7 +50,7 @@ from flask import current_app
 # Raise SPAM_THRESHOLD → fewer spam flags (stricter).
 # Lower  SPAM_THRESHOLD → more spam flags (looser).
 SPAM_THRESHOLD   : float = 0.70   # Part 1
-VULGAR_THRESHOLD : float = 0.80   # Part 4 (also set in VulgarClassifier)
+VULGAR_THRESHOLD : float = 0.90   # Part 4 (also set in VulgarClassifier)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
