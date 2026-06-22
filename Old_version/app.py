@@ -44,7 +44,7 @@ def create_app(config_class=Config):
     spam_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "SpamCollection.txt")
     app.nb_model.train(spam_dataset_path)
 
-    app.vulgar_model = VulgarClassifier(alpha=1.0, vulgar_threshold=0.60)
+    app.vulgar_model = VulgarClassifier(alpha=1.0, vulgar_threshold=0.70)
     vulgar_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "vulgar_dataset.txt")
     app.vulgar_model.train(vulgar_dataset_path)
 

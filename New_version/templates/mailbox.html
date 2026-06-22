@@ -14,6 +14,7 @@
 
 {% block content %}
 <form method="POST" action="{{ url_for('mail.bulk_action') }}" id="bulkForm">
+  <input type="hidden" name="current_folder" value="{{ folder }}" />
 
   <!-- Toolbar -->
   <div class="toolbar">
@@ -27,7 +28,7 @@
           <option value="unread">Mark unread</option>
           {% if folder != 'spam' %}<option value="spam">Mark spam</option>{% endif %}
           <option value="star">Star</option>
-          <option value="delete">Move to trash</option>
+          <option value="delete">{% if folder == 'trash' %}Delete permanently{% else %}Move to trash{% endif %}</option>
         </select>
         <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
       </div>

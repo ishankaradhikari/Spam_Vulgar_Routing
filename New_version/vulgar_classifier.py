@@ -18,11 +18,11 @@ class VulgarClassifier:
     CLEAN  = 'clean'
     LABELS = (VULGAR, CLEAN)
 
-    def __init__(self, alpha: float = 2.0, vulgar_threshold: float = 0.80):
+    def __init__(self, alpha: float = 2.0, vulgar_threshold: float = 0.70):
         """
         alpha             : Laplace smoothing. Higher = more conservative (fewer false positives).
-        vulgar_threshold  : Minimum P(vulgar) to flag. 0.80 means the model must be
-                            80% confident before blocking — reduces false positives.
+        vulgar_threshold  : Minimum P(vulgar) to flag. 0.70 means the model must be
+                            70% confident before blocking — reduces false positives.
         """
         self.alpha            = alpha
         self.vulgar_threshold = vulgar_threshold

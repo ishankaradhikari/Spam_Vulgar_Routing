@@ -50,7 +50,7 @@ from flask import current_app
 # Raise SPAM_THRESHOLD → fewer spam flags (stricter).
 # Lower  SPAM_THRESHOLD → more spam flags (looser).
 SPAM_THRESHOLD   : float = 0.70   # Part 1
-VULGAR_THRESHOLD : float = 0.60   # Part 4 (also set in VulgarClassifier)
+VULGAR_THRESHOLD : float = 0.70   # Part 4 (also set in VulgarClassifier)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ def classify_message(subject: str, body: str) -> dict:
         warning           : str | None  Warning message if blocked
         decision_reason   : str      Human-readable explanation
     """
-    combined = f"{subject} {body}".strip()
+    combined = f"{subject or ''} {body or ''}".strip()
 
     # ── Step 2: Spam classification ───────────────────────────────────────────
     spam_prob, ham_prob = _get_spam_probability(combined)

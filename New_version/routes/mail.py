@@ -146,8 +146,9 @@ def _render_folder(folder_name, user_id, template="mailbox.html"):
 
 
 @mail_bp.route("/")
-@login_required
 def index():
+    if "user_id" not in session:
+        return render_template("landing.html")
     return redirect(url_for("mail.inbox"))
 
 
@@ -380,7 +381,19 @@ def delete_message(msg_id):
 
     if msg["folder"] == "trash":
         # Permanent delete
-        db.execute("DELETE FROM messages WHERE id=?", (msg_id,))
+        if msg["sender_id"] == user_id and msg["recipient_id"] == user_id:
+            db.execute(
+                """DELETE FROM messages
+                   WHERE folder='trash'
+                     AND sender_id=?
+                     AND recipient_id=?
+                     AND subject=?
+                     AND body=?
+                     AND sent_at=?""",
+                (user_id, user_id, msg["subject"], msg["body"], msg["sent_at"])
+            )
+        else:
+            db.execute("DELETE FROM messages WHERE id=?", (msg_id,))
         flash("Message permanently deleted.", "info")
     else:
         # Move to trash (soft delete)
@@ -475,6 +488,7 @@ def bulk_action():
     db      = get_db()
     ids     = request.form.getlist("msg_ids")
     action  = request.form.get("action")
+    current_folder = request.form.get("current_folder")
 
     if not ids or action not in ("delete", "read", "unread", "spam", "star"):
         flash("Invalid bulk action.", "error")
@@ -488,11 +502,15 @@ def bulk_action():
     all_params = ids + [user_id, user_id]
 
     if action == "delete":
-        db.execute(
-            f"UPDATE messages SET folder='trash', deleted_at=CURRENT_TIMESTAMP WHERE {ownership}",
-            all_params
-        )
-        flash(f"{len(ids)} message(s) moved to Trash.", "info")
+        if current_folder == "trash":
+            db.execute(f"DELETE FROM messages WHERE {ownership}", all_params)
+            flash(f"{len(ids)} message(s) permanently deleted.", "info")
+        else:
+            db.execute(
+                f"UPDATE messages SET folder='trash', deleted_at=CURRENT_TIMESTAMP WHERE {ownership}",
+                all_params
+            )
+            flash(f"{len(ids)} message(s) moved to Trash.", "info")
     elif action == "read":
         db.execute(f"UPDATE messages SET is_read=1 WHERE {ownership}", all_params)
         flash(f"{len(ids)} marked as read.", "info")

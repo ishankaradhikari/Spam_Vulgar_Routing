@@ -38,7 +38,7 @@ def create_app(config_class=Config):
     # A second, independent classifier that detects vulgar/abusive language.
     # It uses character n-grams + word features + special-char ratios so it
     # can detect obfuscated words like bi*ch, @ss, f!ck, etc.
-    app.vulgar_model = VulgarClassifier(alpha=2.0, vulgar_threshold=0.90)
+    app.vulgar_model = VulgarClassifier(alpha=2.0, vulgar_threshold=0.70)
     vulgar_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "vulgar_dataset.txt")
     app.vulgar_model.train(vulgar_dataset_path)
 

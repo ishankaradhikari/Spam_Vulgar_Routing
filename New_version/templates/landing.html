@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Welcome — PulseMailer{% endblock %}
+
+{% block public_content %}
+<div class="landing-page">
+  <div class="landing-hero">
+    <div class="hero-copy">
+      <div class="hero-badge">Messaging reimagined</div>
+      <h1>Fast, clean, and secure message flow.</h1>
+      <p>PulseMailer now feels like a modern chat app, with real-time delivery, message previews, and a smooth inbox experience.</p>
+      <div class="hero-actions">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Sign In</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Create Account</a>
+      </div>
+    </div>
+
+    <div class="hero-preview">
+      <div class="preview-header">
+        <span class="preview-dot preview-dot-active"></span>
+        <span class="preview-dot"></span>
+        <span class="preview-dot"></span>
+      </div>
+      <div class="preview-card">
+        <div class="preview-title">Latest conversations</div>
+        <div class="preview-item">
+          <div class="preview-avatar">A</div>
+          <div>
+            <div class="preview-name">Alice</div>
+            <div class="preview-snippet">Can you review the updated spam filter logic?</div>
+          </div>
+          <div class="preview-time">Now</div>
+        </div>
+        <div class="preview-item">
+          <div class="preview-avatar" style="background:#ffb703">J</div>
+          <div>
+            <div class="preview-name">Jordan</div>
+            <div class="preview-snippet">The notification bell is instant now 🎉</div>
+          </div>
+          <div class="preview-time">2m</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="landing-features">
+    <div class="feature-card">
+      <h2>Real-time inbox</h2>
+      <p>Receive new messages instantly with live notifications and an updated inbox badge.</p>
+    </div>
+    <div class="feature-card">
+      <h2>Clean chat-style view</h2>
+      <p>Your messages are presented like a modern conversation list for faster browsing.</p>
+    </div>
+    <div class="feature-card">
+      <h2>Safe content filtering</h2>
+      <p>Spam and vulgar content are checked before delivery so your team stays protected.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

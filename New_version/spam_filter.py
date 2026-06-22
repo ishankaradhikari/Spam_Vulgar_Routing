@@ -50,7 +50,8 @@ from flask import current_app
 # Raise SPAM_THRESHOLD → fewer spam flags (stricter).
 # Lower  SPAM_THRESHOLD → more spam flags (looser).
 SPAM_THRESHOLD   : float = 0.70   # Part 1
-VULGAR_THRESHOLD : float = 0.90   # Part 4 (also set in VulgarClassifier)
+SUBJECT_SPAM_THRESHOLD : float = 0.50  # Stricter for subject alone
+VULGAR_THRESHOLD : float = 0.70   # Part 4 (also set in VulgarClassifier)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,16 +139,45 @@ def classify_message(subject: str, body: str) -> dict:
         warning           : str | None  Warning message if blocked
         decision_reason   : str      Human-readable explanation
     """
-    combined = f"{subject} {body}".strip()
+    combined = f"{subject or ''} {body or ''}".strip()  # combine subject + body for spam/vulgar analysis
 
     # ── Step 2: Spam classification ───────────────────────────────────────────
+    # First check subject alone for spam (stricter check)
+    subject_text = (subject or '').strip()
+    subject_spam_flag = False
+    if subject_text:
+        subject_spam_prob, subject_ham_prob = _get_spam_probability(subject_text)
+        subject_spam_flag = subject_spam_prob >= SUBJECT_SPAM_THRESHOLD
+
+    # Then check combined
     spam_prob, ham_prob = _get_spam_probability(combined)
     confidence = abs(spam_prob - ham_prob)
 
-    # Part 1 threshold decision
-    is_spam_flag = spam_prob >= SPAM_THRESHOLD
+    # Part 1 threshold decision: spam if subject is spam OR combined is spam
+    is_spam_flag = subject_spam_flag or (spam_prob >= SPAM_THRESHOLD)
 
     # ── Step 3: Vulgar classification ─────────────────────────────────────────
+    # First check subject alone (stricter check)
+    subject_text = (subject or '').strip()
+    if subject_text:
+        subject_vulgar_proba = current_app.vulgar_model.predict_proba(subject_text)
+        subject_vulgar_prob = subject_vulgar_proba['vulgar']
+        if subject_vulgar_prob >= VULGAR_THRESHOLD:
+            return {
+                'spam_probability':   round(spam_prob,   4),
+                'ham_probability':    round(ham_prob,     4),
+                'confidence':         round(confidence,   4),
+                'is_spam':            is_spam_flag,
+                'vulgar_probability': round(subject_vulgar_prob,  4),
+                'is_vulgar':          True,
+                'blocked':            True,
+                'folder':             'moderation',
+                'spam_flag':          0,
+                'warning':            'Inappropriate language detected in subject.',
+                'decision_reason':    f'VULGAR SUBJECT (P={subject_vulgar_prob:.3f} ≥ {VULGAR_THRESHOLD})'
+            }
+
+    # Then check combined message
     vulgar_proba = current_app.vulgar_model.predict_proba(combined)
     vulgar_probability = vulgar_proba['vulgar']
     is_vulgar = (vulgar_probability >= VULGAR_THRESHOLD)

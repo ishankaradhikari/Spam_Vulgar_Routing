@@ -85,7 +85,7 @@ class VulgarClassifier:
     CLEAN  = 'clean'
     LABELS = (VULGAR, CLEAN)
 
-    def __init__(self, alpha: float = 1.0, vulgar_threshold: float = 0.60):
+    def __init__(self, alpha: float = 1.0, vulgar_threshold: float = 0.70):
         """
         Parameters
         ----------
@@ -93,7 +93,7 @@ class VulgarClassifier:
             Laplace smoothing constant. Increase to smooth more aggressively.
         vulgar_threshold : float
             Probability threshold above which a message is flagged as vulgar.
-            Default 0.60 per Part 4 of the spec.
+            Default 0.70 per Part 4 of the spec.
         """
         self.alpha             = alpha
         self.vulgar_threshold  = vulgar_threshold
