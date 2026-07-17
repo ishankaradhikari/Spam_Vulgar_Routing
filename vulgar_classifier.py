@@ -8,7 +8,9 @@ Completely independent from the spam NaiveBayesSpamClassifier.
 """
 
 import math
+import pickle
 from collections import defaultdict
+from pathlib import Path
 from vulgar_features import extract_features
 
 
@@ -91,6 +93,21 @@ class VulgarClassifier:
         self.class_counts       = {c: 0   for c in self.LABELS}
         self.n_train            = 0
         self.trained            = False
+
+    def save(self, path: str) -> None:
+        """Persist the trained classifier state to disk."""
+        with open(path, 'wb') as fh:
+            pickle.dump(self.__dict__, fh)
+
+    @classmethod
+    def load(cls, path: str) -> 'VulgarClassifier':
+        """Load a previously saved classifier state from disk."""
+        with open(path, 'rb') as fh:
+            state = pickle.load(fh)
+
+        model = cls()
+        model.__dict__.update(state)
+        return model
 
     # ── Log-likelihood ────────────────────────────────────────────────────────
 

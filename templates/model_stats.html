@@ -14,33 +14,34 @@
 
 <div class="model-section">
   <h1 class="model-heading">Spam Classifier Statistics</h1>
+  <p class="section-desc" style="margin-top:-8px; margin-bottom:16px;"><strong>Training examples:</strong> {{ spam_stats.train_size }} &nbsp;|&nbsp; <strong>Test examples:</strong> {{ spam_stats.test_size }}</p>
   
   <div class="stats-grid">
     <div class="stat-card accent">
-      <div class="stat-label">Accuracy</div>
-      <div class="stat-value">{{ spam_stats.accuracy }}%</div>
-      <div class="stat-sub">Overall correct predictions</div>
+      <div class="stat-label">Training Accuracy</div>
+      <div class="stat-value">{{ spam_stats.train.accuracy }}%</div>
+      <div class="stat-sub">On {{ spam_stats.train_size }} training examples</div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-label">Precision</div>
-      <div class="stat-value">{{ spam_stats.precision }}%</div>
-      <div class="stat-sub">Of flagged spam, truly spam</div>
+      <div class="stat-label">Test Accuracy</div>
+      <div class="stat-value">{{ spam_stats.test.accuracy }}%</div>
+      <div class="stat-sub">On {{ spam_stats.test_size }} test examples</div>
     </div>
     <div class="stat-card teal">
-      <div class="stat-label">Recall</div>
-      <div class="stat-value">{{ spam_stats.recall }}%</div>
-      <div class="stat-sub">Of all spam, how much caught</div>
+      <div class="stat-label">Train Precision</div>
+      <div class="stat-value">{{ spam_stats.train.precision }}%</div>
+      <div class="stat-sub">Training set precision</div>
     </div>
     <div class="stat-card green">
-      <div class="stat-label">F1 Score</div>
-      <div class="stat-value">{{ spam_stats.f1 }}%</div>
-      <div class="stat-sub">Balance of precision and recall</div>
+      <div class="stat-label">Test Precision</div>
+      <div class="stat-value">{{ spam_stats.test.precision }}%</div>
+      <div class="stat-sub">Test set precision</div>
     </div>
   </div>
 
   <div class="stats-section">
     <h2 class="section-title">Confusion Matrix</h2>
-    <p class="section-desc">Evaluated on <strong>{{ spam_stats.total }}</strong> examples from the training dataset using threshold <strong>{{ spam_stats.threshold }}</strong>.</p>
+    <p class="section-desc">Using an <strong>80/20</strong> split with <strong>{{ spam_stats.train_size }}</strong> training examples and <strong>{{ spam_stats.test_size }}</strong> test examples. Threshold: <strong>{{ spam_stats.train.threshold }}</strong>.</p>
 
     <div class="confusion-wrap">
       <div class="confusion-matrix">
@@ -50,21 +51,21 @@
 
         <div class="cm-row-label">Actual HAM</div>
         <div class="cm-cell cm-tn">
-          <span class="cm-count">{{ spam_stats.TN }}</span>
+          <span class="cm-count">{{ spam_stats.test.TN }}</span>
           <span class="cm-name">True Negative</span>
         </div>
         <div class="cm-cell cm-fp">
-          <span class="cm-count">{{ spam_stats.FP }}</span>
+          <span class="cm-count">{{ spam_stats.test.FP }}</span>
           <span class="cm-name">False Positive</span>
         </div>
 
         <div class="cm-row-label">Actual SPAM</div>
         <div class="cm-cell cm-fn">
-          <span class="cm-count">{{ spam_stats.FN }}</span>
+          <span class="cm-count">{{ spam_stats.test.FN }}</span>
           <span class="cm-name">False Negative</span>
         </div>
         <div class="cm-cell cm-tp">
-          <span class="cm-count">{{ spam_stats.TP }}</span>
+          <span class="cm-count">{{ spam_stats.test.TP }}</span>
           <span class="cm-name">True Positive</span>
         </div>
       </div>
@@ -74,12 +75,12 @@
   <div class="stats-section">
     <h2 class="section-title">Model Information</h2>
     <div class="info-grid">
-      <div class="info-item"><span class="info-label">Training spam messages</span><span class="info-val">{{ spam_stats.spam_count }}</span></div>
-      <div class="info-item"><span class="info-label">Training ham messages</span><span class="info-val">{{ spam_stats.ham_count }}</span></div>
-      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ spam_stats.vocab_size }}</span></div>
-      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ spam_stats.threshold }}</span></div>
+      <div class="info-item"><span class="info-label">Training size</span><span class="info-val">{{ spam_stats.train_size }}</span></div>
+      <div class="info-item"><span class="info-label">Test size</span><span class="info-val">{{ spam_stats.test_size }}</span></div>
+      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ spam_stats.train.vocab_size }}</span></div>
+      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ spam_stats.train.threshold }}</span></div>
       <div class="info-item"><span class="info-label">Algorithm</span><span class="info-val">Naive Bayes (Laplace smoothing)</span></div>
-      <div class="info-item"><span class="info-label">Evaluation set</span><span class="info-val">Training data ({{ spam_stats.total }} examples)</span></div>
+      <div class="info-item"><span class="info-label">Split</span><span class="info-val">80% train / 20% test</span></div>
     </div>
   </div>
 
@@ -97,7 +98,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for ex in spam_stats.examples %}
+          {% for ex in spam_stats.test.examples %}
           <tr class="{{ 'pred-wrong' if not ex.correct else '' }}">
             <td><span class="label-tag {{ ex.true }}">{{ ex.true }}</span></td>
             <td><span class="label-tag {{ ex.pred }}">{{ ex.pred }}</span></td>
@@ -126,33 +127,34 @@
 
 <div class="model-section">
   <h1 class="model-heading">Vulgar Content Classifier Statistics</h1>
+  <p class="section-desc" style="margin-top:-8px; margin-bottom:16px;"><strong>Training examples:</strong> {{ vulgar_stats.train_size }} &nbsp;|&nbsp; <strong>Test examples:</strong> {{ vulgar_stats.test_size }}</p>
   
   <div class="stats-grid">
     <div class="stat-card accent">
-      <div class="stat-label">Accuracy</div>
-      <div class="stat-value">{{ vulgar_stats.accuracy }}%</div>
-      <div class="stat-sub">Overall correct predictions</div>
+      <div class="stat-label">Training Accuracy</div>
+      <div class="stat-value">{{ vulgar_stats.train.accuracy }}%</div>
+      <div class="stat-sub">On {{ vulgar_stats.train_size }} training examples</div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-label">Precision</div>
-      <div class="stat-value">{{ vulgar_stats.precision }}%</div>
-      <div class="stat-sub">Of flagged vulgar, truly vulgar</div>
+      <div class="stat-label">Test Accuracy</div>
+      <div class="stat-value">{{ vulgar_stats.test.accuracy }}%</div>
+      <div class="stat-sub">On {{ vulgar_stats.test_size }} test examples</div>
     </div>
     <div class="stat-card teal">
-      <div class="stat-label">Recall</div>
-      <div class="stat-value">{{ vulgar_stats.recall }}%</div>
-      <div class="stat-sub">Of all vulgar, how much caught</div>
+      <div class="stat-label">Train Precision</div>
+      <div class="stat-value">{{ vulgar_stats.train.precision }}%</div>
+      <div class="stat-sub">Training set precision</div>
     </div>
     <div class="stat-card green">
-      <div class="stat-label">F1 Score</div>
-      <div class="stat-value">{{ vulgar_stats.f1 }}%</div>
-      <div class="stat-sub">Balance of precision and recall</div>
+      <div class="stat-label">Test Precision</div>
+      <div class="stat-value">{{ vulgar_stats.test.precision }}%</div>
+      <div class="stat-sub">Test set precision</div>
     </div>
   </div>
 
   <div class="stats-section">
     <h2 class="section-title">Confusion Matrix</h2>
-    <p class="section-desc">Evaluated on <strong>{{ vulgar_stats.total }}</strong> examples from the training dataset using threshold <strong>{{ vulgar_stats.threshold }}</strong>.</p>
+    <p class="section-desc">Using an <strong>80/20</strong> split with <strong>{{ vulgar_stats.train_size }}</strong> training examples and <strong>{{ vulgar_stats.test_size }}</strong> test examples. Threshold: <strong>{{ vulgar_stats.train.threshold }}</strong>.</p>
 
     <div class="confusion-wrap">
       <div class="confusion-matrix">
@@ -162,21 +164,21 @@
 
         <div class="cm-row-label">Actual CLEAN</div>
         <div class="cm-cell cm-tn">
-          <span class="cm-count">{{ vulgar_stats.TN }}</span>
+          <span class="cm-count">{{ vulgar_stats.test.TN }}</span>
           <span class="cm-name">True Negative</span>
         </div>
         <div class="cm-cell cm-fp">
-          <span class="cm-count">{{ vulgar_stats.FP }}</span>
+          <span class="cm-count">{{ vulgar_stats.test.FP }}</span>
           <span class="cm-name">False Positive</span>
         </div>
 
         <div class="cm-row-label">Actual VULGAR</div>
         <div class="cm-cell cm-fn">
-          <span class="cm-count">{{ vulgar_stats.FN }}</span>
+          <span class="cm-count">{{ vulgar_stats.test.FN }}</span>
           <span class="cm-name">False Negative</span>
         </div>
         <div class="cm-cell cm-tp">
-          <span class="cm-count">{{ vulgar_stats.TP }}</span>
+          <span class="cm-count">{{ vulgar_stats.test.TP }}</span>
           <span class="cm-name">True Positive</span>
         </div>
       </div>
@@ -186,12 +188,12 @@
   <div class="stats-section">
     <h2 class="section-title">Model Information</h2>
     <div class="info-grid">
-      <div class="info-item"><span class="info-label">Training vulgar messages</span><span class="info-val">{{ vulgar_stats.vulgar_count }}</span></div>
-      <div class="info-item"><span class="info-label">Training clean messages</span><span class="info-val">{{ vulgar_stats.clean_count }}</span></div>
-      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ vulgar_stats.vocab_size }}</span></div>
-      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ vulgar_stats.threshold }}</span></div>
+      <div class="info-item"><span class="info-label">Training size</span><span class="info-val">{{ vulgar_stats.train_size }}</span></div>
+      <div class="info-item"><span class="info-label">Test size</span><span class="info-val">{{ vulgar_stats.test_size }}</span></div>
+      <div class="info-item"><span class="info-label">Vocabulary size</span><span class="info-val">{{ vulgar_stats.train.vocab_size }}</span></div>
+      <div class="info-item"><span class="info-label">Decision threshold</span><span class="info-val">{{ vulgar_stats.train.threshold }}</span></div>
       <div class="info-item"><span class="info-label">Algorithm</span><span class="info-val">Naive Bayes with n-grams (Laplace smoothing)</span></div>
-      <div class="info-item"><span class="info-label">Evaluation set</span><span class="info-val">Training data ({{ vulgar_stats.total }} examples)</span></div>
+      <div class="info-item"><span class="info-label">Split</span><span class="info-val">80% train / 20% test</span></div>
     </div>
   </div>
 
@@ -209,7 +211,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for ex in vulgar_stats.examples %}
+          {% for ex in vulgar_stats.test.examples %}
           <tr class="{{ 'pred-wrong' if not ex.correct else '' }}">
             <td><span class="label-tag {{ ex.true }}">{{ ex.true }}</span></td>
             <td><span class="label-tag {{ ex.pred }}">{{ ex.pred }}</span></td>

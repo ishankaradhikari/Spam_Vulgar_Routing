@@ -12,9 +12,13 @@ on the same dataset it was trained on (train-set evaluation) and displays:
 
 import math
 import os
+import random
+import tempfile
 from functools import wraps
 from flask import Blueprint, render_template, current_app, session, redirect, url_for, flash
 from database import get_db
+from naive_bayes import NaiveBayesSpamClassifier
+from vulgar_classifier import VulgarClassifier
 
 stats_bp = Blueprint("stats", __name__)
 
@@ -55,47 +59,82 @@ def _get_vulgar_probability(model, message: str) -> float:
     return proba[model.VULGAR]
 
 
-def compute_stats(dataset_path: str, threshold: float = 0.70) -> dict:
-    model = current_app.nb_model
-    TP = TN = FP = FN = 0
-    total = 0
+def load_labeled_examples(dataset_path: str) -> list[tuple[str, str]]:
     examples = []
 
+    with open(dataset_path, "r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            if '\t' in line:
+                parts = line.split('\t', 1)
+            else:
+                parts = line.split(None, 1)
+
+            if len(parts) < 2:
+                continue
+
+            label = parts[0].strip().lower()
+            text = parts[1].strip()
+            examples.append((label, text))
+
+    return examples
+
+
+def split_dataset_examples(examples: list[tuple[str, str]], train_ratio: float = 0.8, random_seed: int = 42) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    if not examples:
+        return [], []
+
+    shuffled = list(examples)
+    rng = random.Random(random_seed)
+    rng.shuffle(shuffled)
+
+    split_index = int(len(shuffled) * train_ratio)
+    split_index = max(1, min(split_index, len(shuffled) - 1))
+    return shuffled[:split_index], shuffled[split_index:]
+
+
+def _train_model_from_examples(model, examples: list[tuple[str, str]]) -> None:
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+        for label, text in examples:
+            handle.write(f"{label}\t{text}\n")
+        temp_path = handle.name
+
     try:
-        with open(dataset_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                parts = line.split("\t", 1)
-                if len(parts) < 2:
-                    continue
+        model.train(temp_path)
+    finally:
+        os.unlink(temp_path)
 
-                true_label, text = parts[0].lower(), parts[1]
-                spam_prob = _get_spam_probability(model, text)
-                pred_label = "spam" if spam_prob >= threshold else "ham"
 
-                total += 1
-                if true_label == "spam" and pred_label == "spam":
-                    TP += 1
-                elif true_label == "ham" and pred_label == "ham":
-                    TN += 1
-                elif true_label == "ham" and pred_label == "spam":
-                    FP += 1
-                elif true_label == "spam" and pred_label == "ham":
-                    FN += 1
+def _evaluate_spam_examples(model, examples: list[tuple[str, str]], threshold: float = 0.70) -> dict:
+    TP = TN = FP = FN = 0
+    total = 0
+    sample_examples = []
 
-                if total <= 200:
-                    examples.append({
-                        'true': true_label,
-                        'pred': pred_label,
-                        'prob': round(spam_prob * 100, 1),
-                        'correct': true_label == pred_label,
-                        'text': text[:80],
-                    })
+    for true_label, text in examples:
+        spam_prob = _get_spam_probability(model, text)
+        pred_label = "spam" if spam_prob >= threshold else "ham"
 
-    except FileNotFoundError:
-        return {'error': f'Dataset not found: {dataset_path}'}
+        total += 1
+        if true_label == "spam" and pred_label == "spam":
+            TP += 1
+        elif true_label == "ham" and pred_label == "ham":
+            TN += 1
+        elif true_label == "ham" and pred_label == "spam":
+            FP += 1
+        elif true_label == "spam" and pred_label == "ham":
+            FN += 1
+
+        if total <= 200:
+            sample_examples.append({
+                'true': true_label,
+                'pred': pred_label,
+                'prob': round(spam_prob * 100, 1),
+                'correct': true_label == pred_label,
+                'text': text[:80],
+            })
 
     denom_acc = TP + TN + FP + FN
     denom_prec = TP + FP
@@ -107,7 +146,10 @@ def compute_stats(dataset_path: str, threshold: float = 0.70) -> dict:
     f1 = round(2 * precision * recall / (precision + recall), 2) if (precision + recall) else 0.0
 
     return {
-        'TP': TP, 'TN': TN, 'FP': FP, 'FN': FN,
+        'TP': TP,
+        'TN': TN,
+        'FP': FP,
+        'FN': FN,
         'total': total,
         'accuracy': accuracy,
         'precision': precision,
@@ -117,62 +159,38 @@ def compute_stats(dataset_path: str, threshold: float = 0.70) -> dict:
         'spam_count': model.spam_messages,
         'ham_count': model.ham_messages,
         'vocab_size': len(model.vocabulary),
-        'examples': examples,
+        'examples': sample_examples,
     }
 
 
-def compute_vulgar_stats(dataset_path: str, threshold: float = 0.90) -> dict:
-    model = current_app.vulgar_model
+def _evaluate_vulgar_examples(model, examples: list[tuple[str, str]], threshold: float = 0.90) -> dict:
     TP = TN = FP = FN = 0
     total = 0
-    examples = []
+    sample_examples = []
 
-    try:
-        with open(dataset_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                # Support both tab-separated and space-separated
-                if '\t' in line:
-                    parts = line.split('\t', 1)
-                else:
-                    parts = line.split(None, 1)
-                
-                if len(parts) < 2:
-                    continue
+    for true_label, text in examples:
+        true_label = 'vulgar' if true_label == 'vulgar' else 'clean'
+        vulgar_prob = _get_vulgar_probability(model, text)
+        pred_label = "vulgar" if vulgar_prob >= threshold else "clean"
 
-                true_label, text = parts[0].lower(), parts[1]
-                # Normalize label variants
-                if true_label == 'vulgar':
-                    true_label = 'vulgar'
-                else:
-                    true_label = 'clean'
-                
-                vulgar_prob = _get_vulgar_probability(model, text)
-                pred_label = "vulgar" if vulgar_prob >= threshold else "clean"
+        total += 1
+        if true_label == "vulgar" and pred_label == "vulgar":
+            TP += 1
+        elif true_label == "clean" and pred_label == "clean":
+            TN += 1
+        elif true_label == "clean" and pred_label == "vulgar":
+            FP += 1
+        elif true_label == "vulgar" and pred_label == "clean":
+            FN += 1
 
-                total += 1
-                if true_label == "vulgar" and pred_label == "vulgar":
-                    TP += 1
-                elif true_label == "clean" and pred_label == "clean":
-                    TN += 1
-                elif true_label == "clean" and pred_label == "vulgar":
-                    FP += 1
-                elif true_label == "vulgar" and pred_label == "clean":
-                    FN += 1
-
-                if total <= 200:
-                    examples.append({
-                        'true': true_label,
-                        'pred': pred_label,
-                        'prob': round(vulgar_prob * 100, 1),
-                        'correct': true_label == pred_label,
-                        'text': text[:80],
-                    })
-
-    except FileNotFoundError:
-        return {'error': f'Dataset not found: {dataset_path}'}
+        if total <= 200:
+            sample_examples.append({
+                'true': true_label,
+                'pred': pred_label,
+                'prob': round(vulgar_prob * 100, 1),
+                'correct': true_label == pred_label,
+                'text': text[:80],
+            })
 
     denom_acc = TP + TN + FP + FN
     denom_prec = TP + FP
@@ -184,7 +202,10 @@ def compute_vulgar_stats(dataset_path: str, threshold: float = 0.90) -> dict:
     f1 = round(2 * precision * recall / (precision + recall), 2) if (precision + recall) else 0.0
 
     return {
-        'TP': TP, 'TN': TN, 'FP': FP, 'FN': FN,
+        'TP': TP,
+        'TN': TN,
+        'FP': FP,
+        'FN': FN,
         'total': total,
         'accuracy': accuracy,
         'precision': precision,
@@ -194,7 +215,47 @@ def compute_vulgar_stats(dataset_path: str, threshold: float = 0.90) -> dict:
         'vulgar_count': model.class_counts[model.VULGAR],
         'clean_count': model.class_counts[model.CLEAN],
         'vocab_size': len(model.vocabulary),
-        'examples': examples,
+        'examples': sample_examples,
+    }
+
+
+def compute_stats(dataset_path: str, threshold: float = 0.70) -> dict:
+    try:
+        examples = load_labeled_examples(dataset_path)
+    except FileNotFoundError:
+        return {'error': f'Dataset not found: {dataset_path}'}
+
+    train_examples, test_examples = split_dataset_examples(examples, train_ratio=0.8, random_seed=42)
+    train_model = NaiveBayesSpamClassifier()
+    _train_model_from_examples(train_model, train_examples)
+
+    return {
+        'train': _evaluate_spam_examples(train_model, train_examples, threshold=threshold),
+        'test': _evaluate_spam_examples(train_model, test_examples, threshold=threshold),
+        'train_ratio': 0.8,
+        'test_ratio': 0.2,
+        'train_size': len(train_examples),
+        'test_size': len(test_examples),
+    }
+
+
+def compute_vulgar_stats(dataset_path: str, threshold: float = 0.90) -> dict:
+    try:
+        examples = load_labeled_examples(dataset_path)
+    except FileNotFoundError:
+        return {'error': f'Dataset not found: {dataset_path}'}
+
+    train_examples, test_examples = split_dataset_examples(examples, train_ratio=0.8, random_seed=42)
+    train_model = VulgarClassifier(alpha=2.0, vulgar_threshold=threshold)
+    _train_model_from_examples(train_model, train_examples)
+
+    return {
+        'train': _evaluate_vulgar_examples(train_model, train_examples, threshold=threshold),
+        'test': _evaluate_vulgar_examples(train_model, test_examples, threshold=threshold),
+        'train_ratio': 0.8,
+        'test_ratio': 0.2,
+        'train_size': len(train_examples),
+        'test_size': len(test_examples),
     }
 
 

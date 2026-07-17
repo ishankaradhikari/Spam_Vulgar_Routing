@@ -40,7 +40,13 @@ def create_app(config_class=Config):
     # can detect obfuscated words like bi*ch, @ss, f!ck, etc.
     app.vulgar_model = VulgarClassifier(alpha=2.0, vulgar_threshold=0.70)
     vulgar_dataset_path = os.path.join(os.path.dirname(__file__), "dataset", "vulgar_dataset.txt")
-    app.vulgar_model.train(vulgar_dataset_path)
+    model_cache_path = os.path.join(os.path.dirname(__file__), "uploads", "vulgar_model.pkl")
+
+    if os.path.exists(model_cache_path):
+        app.vulgar_model = VulgarClassifier.load(model_cache_path)
+    else:
+        app.vulgar_model.train(vulgar_dataset_path)
+        app.vulgar_model.save(model_cache_path)
 
 
     
