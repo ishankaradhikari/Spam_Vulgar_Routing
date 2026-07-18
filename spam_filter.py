@@ -5,11 +5,11 @@ Replaces the original spam_filter.py with a fully ML-based pipeline.
 
 CHANGES vs ORIGINAL
 -------------------
-Original: Hybrid — Naive Bayes prediction (string label) + rule-based scoring.
+Original: Hybrid - Naive Bayes prediction (string label) + rule-based scoring.
 Enhanced: Pure threshold-based ML decision using the *probabilities* the
           existing NaiveBayesSpamClassifier already computes internally.
 
-PART 1 — Threshold-Based Spam Classification
+PART 1 - Threshold-Based Spam Classification
 ---------------------------------------------
 The existing naive_bayes.py predict() method returns a binary "spam"/"ham"
 label. We extend its usage to extract the raw log-probabilities and convert
@@ -23,10 +23,10 @@ them to real probabilities, then apply a configurable threshold.
 
 WHY 0.70?
   The 0.50 midpoint just picks the more likely class. 0.70 requires the
-  model to be at least 70 % confident before flagging — this reduces false
+  model to be at least 70 % confident before flagging - this reduces false
   positives on borderline messages while still catching clear spam.
 
-PART 5 — Final Message Pipeline Priority
+PART 5 - Final Message Pipeline Priority
 -----------------------------------------
   1. Run normaliser + spam classifier  → spam_label, spam_prob, confidence
   2. Run vulgar classifier             → vulgar_label, vulgar_prob
@@ -35,7 +35,7 @@ PART 5 — Final Message Pipeline Priority
        SPAM   → store with spam flag
        CLEAN  → store normally
 
-PART 6 — Actions
+PART 6 - Actions
 -----------------
   HAM    + CLEAN   →  folder = 'inbox',  spam_flag = 0, blocked = False
   SPAM   + CLEAN   →  folder = 'spam',   spam_flag = 1, blocked = False
@@ -45,13 +45,11 @@ PART 6 — Actions
 
 import math
 from flask import current_app
+from ml_utils import get_spam_probability
+from ml_settings import SPAM_THRESHOLD, SUBJECT_SPAM_THRESHOLD, VULGAR_THRESHOLD
 
 # ── Thresholds (adjustable without retraining) ────────────────────────────────
-# Raise SPAM_THRESHOLD → fewer spam flags (stricter).
-# Lower  SPAM_THRESHOLD → more spam flags (looser).
-SPAM_THRESHOLD   : float = 0.70   # Part 1
-SUBJECT_SPAM_THRESHOLD : float = 0.50  # Stricter for subject alone
-VULGAR_THRESHOLD : float = 0.70   # Part 4 (also set in VulgarClassifier)
+# Uses centralized production values from ml_settings.py.
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,50 +57,13 @@ VULGAR_THRESHOLD : float = 0.70   # Part 4 (also set in VulgarClassifier)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_spam_probability(message: str) -> tuple[float, float]:
+    """Return (P(spam), P(ham)) using the shared utility.
+
+    The utility returns P(spam); ham is computed as 1 - spam for simplicity.
     """
-    Compute P(spam) and P(ham) from the existing NaiveBayesSpamClassifier.
-
-    The original model stores log-probability accumulators but does NOT
-    expose them as probabilities. We replicate its log-score computation
-    here to extract the probability WITHOUT touching the original class.
-
-    Returns
-    -------
-    (spam_prob, ham_prob)
-        Both sum to 1.0.
-    """
-    model = current_app.nb_model      # trained NaiveBayesSpamClassifier instance
-
-    # ── Replicate the model's log-score accumulation ──────────────────────────
-    # (mirrors the logic in naive_bayes.py predict() exactly)
-    words = model.tokenize(message)
-    total_msgs = model.spam_messages + model.ham_messages
-
-    if total_msgs == 0:
-        # Model untrained — return neutral probabilities
-        return 0.5, 0.5
-
-    log_spam = math.log(model.spam_messages / total_msgs)
-    log_ham  = math.log(model.ham_messages  / total_msgs)
-
-    for word in words:
-        if word in model.STOP_WORDS:
-            continue
-        log_spam += math.log(model.word_prob(word, 'spam'))
-        log_ham  += math.log(model.word_prob(word, 'ham'))
-
-    # ── Convert log-scores to probabilities via log-sum-exp ───────────────────
-    # P(spam) = exp(log_spam) / (exp(log_spam) + exp(log_ham))
-    # Numerical stability: subtract max before exp.
-    max_log = max(log_spam, log_ham)
-    exp_spam = math.exp(log_spam - max_log)
-    exp_ham  = math.exp(log_ham  - max_log)
-    total    = exp_spam + exp_ham
-
-    spam_prob = exp_spam / total
-    ham_prob  = exp_ham  / total
-
-    return spam_prob, ham_prob
+    model = current_app.nb_model
+    spam_prob = get_spam_probability(model, message)
+    return spam_prob, 1.0 - spam_prob
 
 
 # ─────────────────────────────────────────────────────────────────────────────

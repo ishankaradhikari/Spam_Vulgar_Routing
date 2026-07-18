@@ -55,12 +55,12 @@ CREATE INDEX IF NOT EXISTS idx_users_email    ON users(email);
 -- one for recipient (folder='inbox', 'spam', or 'moderation').
 -- thread_id links replies together.
 --
--- NEW COLUMNS (v2 — ML moderation enhancement):
+-- NEW COLUMNS (v2 - ML moderation enhancement):
 --   spam_flag          : 1 if message was classified as spam, 0 otherwise
---   spam_probability   : P(spam|message) from Naive Bayes  [0.0 – 1.0]
---   ham_probability    : P(ham|message)                    [0.0 – 1.0]
---   spam_confidence    : |P(spam) - P(ham)|, model certainty [0.0 – 1.0]
---   vulgar_probability : P(vulgar|message)                 [0.0 – 1.0]
+--   spam_probability   : P(spam|message) from Naive Bayes  [0.0 - 1.0]
+--   ham_probability    : P(ham|message)                    [0.0 - 1.0]
+--   spam_confidence    : |P(spam) - P(ham)|, model certainty [0.0 - 1.0]
+--   vulgar_probability : P(vulgar|message)                 [0.0 - 1.0]
 --   is_vulgar          : 1 if message was classified as vulgar, 0 otherwise
 --   is_blocked         : 1 if message was blocked from delivery (vulgar)
 --   moderation_reason  : human-readable explanation of the ML decision
@@ -135,7 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_modlog_blocked   ON moderation_log(blocked_at DES
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Migration helper — adds new columns to existing databases
+# Migration helper - adds new columns to existing databases
 # ─────────────────────────────────────────────────────────────────────────────
 
 _MIGRATION_COLUMNS = [
@@ -166,7 +166,7 @@ def migrate_db(app) -> None:
             cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
             print(f"[DB Migration] Added column {table}.{col}")
         except sqlite3.OperationalError:
-            pass   # column already exists — safe to ignore
+            pass   # column already exists - safe to ignore
 
     conn.commit()
     conn.close()

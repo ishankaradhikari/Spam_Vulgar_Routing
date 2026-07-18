@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_folder = msg.folder %}
 
-{% block title %}{{ msg.subject }} — PulseMailer{% endblock %}
+{% block title %}{{ msg.subject }} - PulseMailer{% endblock %}
 {% block topbar_title %}Message{% endblock %}
 
 {% block topbar_search %}{% endblock %}
@@ -107,7 +107,7 @@
       <!-- Forward -->
       <a href="{{ url_for('mail.compose',
           subject=('Fwd: ' + msg.subject) if not msg.subject.startswith('Fwd:') else msg.subject,
-          body='\n\n——— Forwarded message ———\n' + (msg.body or '')) }}" class="btn btn-secondary btn-sm">
+          body='\n\n------- Forwarded message -------\n' + (msg.body or '')) }}" class="btn btn-secondary btn-sm">
         ↪ Forward
       </a>
 

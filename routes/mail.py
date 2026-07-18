@@ -308,7 +308,7 @@ def compose():
             flash("Message sent!", "success")
         return redirect(url_for("mail.sent"))
 
-    # GET — load user list for autocomplete
+    # GET - load user list for autocomplete
     users = db.execute(
         "SELECT username, display_name FROM users WHERE id != ? ORDER BY username",
         (session["user_id"],)
@@ -336,7 +336,7 @@ def view_message(msg_id):
         db.execute("UPDATE messages SET is_read=1 WHERE id=?", (msg_id,))
         db.commit()
 
-    # Thread messages — one row per logical message (deduplicated by sender+time).
+    # Thread messages - one row per logical message (deduplicated by sender+time).
     # Each send creates two DB rows (inbox copy + sent copy); we show only the
     # inbox/recipient copy when it exists, falling back to the sent copy.
     deleted_clause = "AND (m.deleted_at IS NULL OR m.folder='trash')" if msg["folder"] == "trash" else "AND m.deleted_at IS NULL"

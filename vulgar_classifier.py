@@ -11,6 +11,7 @@ import math
 import pickle
 from collections import defaultdict
 from pathlib import Path
+from ml_settings import VULGAR_ALPHA, VULGAR_THRESHOLD
 from vulgar_features import extract_features
 
 
@@ -20,11 +21,11 @@ class VulgarClassifier:
     CLEAN  = 'clean'
     LABELS = (VULGAR, CLEAN)
 
-    def __init__(self, alpha: float = 2.0, vulgar_threshold: float = 0.70):
+    def __init__(self, alpha: float = VULGAR_ALPHA, vulgar_threshold: float = VULGAR_THRESHOLD):
         """
         alpha             : Laplace smoothing. Higher = more conservative (fewer false positives).
         vulgar_threshold  : Minimum P(vulgar) to flag. 0.70 means the model must be
-                            70% confident before blocking — reduces false positives.
+                            70% confident before blocking - reduces false positives.
         """
         self.alpha            = alpha
         self.vulgar_threshold = vulgar_threshold

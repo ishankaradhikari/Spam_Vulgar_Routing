@@ -21,8 +21,8 @@ in vulgar training examples, and classifies new messages accordingly.
 
 FEATURE SET (4 groups)
 ----------------------
-1. Character trigrams  (n=3)  — captures partial word roots
-2. Character 4-grams   (n=4)  — captures longer discriminative roots
+1. Character trigrams  (n=3)  - captures partial word roots
+2. Character 4-grams   (n=4)  - captures longer discriminative roots
 3. Word TF-IDF tokens  (word-level after normalization+tokenisation)
 4. Special character features:
    - special_char_freq : fraction of non-alphanumeric chars in raw text
@@ -37,7 +37,7 @@ import math
 from vulgar_normalizer import normalize_lower
 
 
-# ── Stop words (minimal — vulgar words are NOT in this list) ──────────────────
+# ── Stop words (minimal - vulgar words are NOT in this list) ──────────────────
 _STOP = {
     # Articles, prepositions, conjunctions
     "a","an","the","to","for","or","and","in","on","at","of","with","from","by","as","into","through",

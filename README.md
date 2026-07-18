@@ -1,4 +1,4 @@
-# PulseMailer — Full-Stack Messaging Web Application
+# PulseMailer - Full-Stack Messaging Web Application
 
 A production-ready, mini email system built with Flask + SQLite.
 
@@ -97,7 +97,7 @@ Open your browser at: **http://localhost:5000**
 
 | Variable | Default | Description |
 |---|---|---|
-| `SECRET_KEY` | `change-me-in-production-please` | Flask session signing key — **change this in production** |
+| `SECRET_KEY` | `change-me-in-production-please` | Flask session signing key - **change this in production** |
 | `DATABASE_URI` | `sqlite:///database.db` | Database URL |
 
 Example for production:
@@ -123,7 +123,7 @@ python app.py
    export DATABASE_URI="postgresql://user:password@localhost/pulsemail"
    ```
 
-3. The schema in `database.py` uses standard SQL — for MySQL/PostgreSQL swap
+3. The schema in `database.py` uses standard SQL - for MySQL/PostgreSQL swap
    `sqlite3` for SQLAlchemy (`pip install SQLAlchemy`) and update `get_db()` accordingly.
    The table definitions remain the same.
 
@@ -180,11 +180,11 @@ CREATE TABLE spam_log (
 ## Spam Detection
 
 The spam scorer in `spam_filter.py` assigns points based on:
-- Keyword hits (e.g. "free money", "act now", "win a prize") — **+3 pts each**
-- Excessive caps (>60 % of text is uppercase) — **+2 pts**
-- Exclamation marks — **+1 pt each (max 3)**
-- Suspicious URLs — **+1 pt each (max 2)**
-- Very short bait messages — **+1 pt**
+- Keyword hits (e.g. "free money", "act now", "win a prize") - **+3 pts each**
+- Excessive caps (>60 % of text is uppercase) - **+2 pts**
+- Exclamation marks - **+1 pt each (max 3)**
+- Suspicious URLs - **+1 pt each (max 2)**
+- Very short bait messages - **+1 pt**
 
 Messages scoring **≥ 5** are auto-routed to the recipient's Spam folder.
 
@@ -195,7 +195,7 @@ Add or remove keywords by editing `SPAM_KEYWORDS` in `config.py`.
 ## Security Notes
 
 - Passwords are hashed with `werkzeug.security.generate_password_hash` (PBKDF2-SHA256)
-- All database queries use parameterised statements — no string interpolation
+- All database queries use parameterised statements - no string interpolation
 - Sessions are `HttpOnly` and `SameSite=Lax`
 - File uploads are sanitised with `werkzeug.utils.secure_filename` + extension allowlist
 - Change `SECRET_KEY` before any public deployment

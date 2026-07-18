@@ -10,7 +10,7 @@ feature extraction so the ML classifier sees "ass" and "@ss" as
 the same character sequence.
 
 This is PREPROCESSING, not rule-based filtering.
-No word is blocked here — we just standardise characters.
+No word is blocked here - we just standardise characters.
 The classifier then decides based on learned patterns.
 
 SUBSTITUTION TABLE

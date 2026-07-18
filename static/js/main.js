@@ -1,5 +1,5 @@
 /**
- * main.js — PulseMailer client-side logic
+ * main.js - PulseMailer client-side logic
  * Handles: flash dismiss, mobile sidebar, select-all, autocomplete,
  *          thread expand/collapse, password toggle, char count, colour picker
  */
@@ -129,7 +129,7 @@ function initAutocomplete() {
         const item = document.createElement('div');
         item.className = 'autocomplete-item';
         item.innerHTML = `<span class="user-name">${escHtml(u.username)}</span>
-                          <span class="display-name"> — ${escHtml(u.display_name || u.username)}</span>`;
+                          <span class="display-name"> - ${escHtml(u.display_name || u.username)}</span>`:
         item.addEventListener('click', () => {
           input.value      = u.username;
           list.style.display = 'none';

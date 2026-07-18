@@ -5,7 +5,6 @@ changing DATABASE_URI and installing the appropriate driver.
 """
 
 import os
-import secrets
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
